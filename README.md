@@ -1,168 +1,148 @@
-# 🧵 Custom Thread Pool in Node.js
+# 🧵 Custom Thread Pool
 
-A lightweight, CPU-aware thread pool implementation built from scratch using Node.js `worker_threads`. Built to understand low-level concurrency — and because documentation can't replace building it yourself.
-
----
-
-## 🤔 What Is a Thread Pool?
-
-A thread pool is a group of pre-initialized workers that wait for tasks. Instead of spinning up a new thread for every job (expensive), you reuse a fixed set of workers.
-
-Think of it like a team of developers and a ticket queue — when a worker is free, it grabs the next task.
+A lightweight, zero-dependency thread pool implementation for Node.js using the built-in `worker_threads` module. Offload CPU-intensive tasks to parallel worker threads while keeping the main event loop fully responsive.
 
 ---
 
-## 🏗️ System Architecture
+## 📐 System Architecture
 
 ![Thread Pool Architecture](./thread_pool_architecture.svg)
 
-> **Flow:** Main thread pushes tasks → Queue holds them → `_processQueue()` dispatches to free workers → Workers serialize & execute → Promise resolves back on the main thread.
-
----
-
-## ✨ Features
-
-- **CPU-aware sizing** — defaults to `os.cpus().length` workers
-- **Task queue** — tasks wait if all workers are busy, then execute automatically
-- **Promise-based API** — `await pool.addTask(fn, ...args)` just works
-- **Error handling** — worker errors are caught and forwarded as rejected promises
-- **Pool stats** — inspect active threads and queue length at any time
-
----
-
-## 📦 Installation
-
-```bash
-git clone https://github.com/mohit-100/Custom_Thread_pool.git
-cd Custom_Thread_pool
-node threadPool.js
-```
-
-No dependencies required — uses Node.js built-ins only (`worker_threads`, `os`).
-
-> Requires **Node.js v12+** for `worker_threads` support.
-
----
-
-## 🚀 Usage
-
-```js
-const pool = new ThreadPool(4); // 4 workers (or omit to use CPU count)
-
-// Add a CPU-heavy task
-const result = await pool.addTask((x, y) => {
-    let sum = 0;
-    for (let i = 0; i < 1_000_000; i++) sum += i;
-    return `Result: ${x + y}, sum: ${sum}`;
-}, 5, 10);
-
-console.log(result);
-// → "Result: 15, sum: 499999500000"
-```
-
-### Running multiple tasks in parallel
-
-```js
-const results = await Promise.all([
-    pool.addTask((x, y) => x + y, 5, 10),
-    pool.addTask((text) => text.toUpperCase(), "hello world"),
-    pool.addTask((n) => {
-        let f = 1;
-        for (let i = 1; i <= n; i++) f *= i;
-        return f;
-    }, 10)
-]);
-
-console.log(results);
-// → [15, "HELLO WORLD", 3628800]
-```
-
-### Checking pool stats
-
-```js
-console.log(pool.getStats());
-// → { activeThreads: 2, queuedTasks: 3, maxThreads: 4 }
-```
-
----
-
-## 🔧 API
-
-### `new ThreadPool(maxThreads?)`
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `maxThreads` | `number` | `os.cpus().length` | Max concurrent workers |
-
-### `pool.addTask(fn, ...args) → Promise`
-
-Queues a function for execution in a worker thread. The function and its arguments are serialized and sent to the worker.
-
-> ⚠️ **Note:** Functions are serialized via `.toString()` — closures and external variables are **not** available inside the task function. Pass everything needed as arguments.
-
-### `pool.getStats() → Object`
-
-Returns current pool state:
-
-```js
-{
-  activeThreads: number,  // Workers currently executing
-  queuedTasks: number,    // Tasks waiting for a free worker
-  maxThreads: number      // Pool capacity
-}
-```
-
----
-
-## 💡 When Should You Use This?
-
-| Use Case | Good Fit? |
-|----------|-----------|
-| Heavy math / data processing | ✅ Yes |
-| Parsing large files | ✅ Yes |
-| Image/video processing | ✅ Yes |
-| Database queries | ❌ Use async/await instead |
-| Network requests | ❌ Use async/await instead |
-| Simple string operations | ❌ Overkill |
-
-The event loop handles I/O efficiently on its own. Thread pools shine when you have **CPU-bound work** that would otherwise block the main thread.
-
----
-
-## 🤯 Things I Learned Building This
-
-- **Thread creation is expensive.** Reusing workers is dramatically faster than spawning new ones per task.
-- **Functions become strings.** You can't pass a function reference to a worker — it gets serialized via `.toString()`, which means no closures.
-- **The event loop doesn't block.** Even with all workers busy, the main thread stays responsive.
-- **Debugging multi-threaded code is chaotic.** `console.log` from 4 threads simultaneously is an experience.
+The diagram above shows the full lifecycle of a task — from `addTask()` on the main thread, through the FIFO task queue, to a spawned Worker thread running `worker.js`, and back as a resolved or rejected Promise.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-Custom_Thread_pool/
-├── threadPool.js                  # ThreadPool class + usage example
-├── worker.js                      # Standalone worker script (alternative implementation)
-└── thread_pool_architecture.svg   # Architecture diagram
+├── threadPool.js   # ThreadPool class — queue, dispatch, lifecycle management
+└── worker.js       # Worker script — deserialises and executes tasks via eval()
 ```
 
 ---
 
-## 🛠️ How It Works Internally
+## 🚀 Quick Start
 
-1. `addTask()` wraps the function in a Promise and pushes it to `taskQueue`
-2. `_processQueue()` checks for idle capacity and dispatches tasks to new workers
-3. Each worker receives the serialized function + args via `postMessage`
-4. The worker evaluates the function, executes it, and posts the result back
-5. The main thread resolves or rejects the Promise, then processes the next queued task
+No installation needed — uses only Node.js built-ins.
+
+```js
+const ThreadPool = require('./threadPool');
+
+const pool = new ThreadPool(4); // max 4 concurrent worker threads
+
+const result = await pool.addTask((x, y) => x + y, 10, 20);
+console.log(result); // 30
+```
+
+---
+
+## ⚙️ API
+
+### `new ThreadPool(maxThreads?)`
+
+Creates a new thread pool.
+
+| Parameter    | Type     | Default              | Description                          |
+|-------------|----------|----------------------|--------------------------------------|
+| `maxThreads` | `number` | `os.cpus().length`   | Maximum number of concurrent workers |
+
+---
+
+### `pool.addTask(fn, ...args)`
+
+Submits a task to the pool. Returns a `Promise` that resolves with the function's return value or rejects on error.
+
+```js
+pool.addTask((text) => text.toUpperCase(), 'hello world')
+  .then(console.log)  // "HELLO WORLD"
+  .catch(console.error);
+```
+
+> **Important:** The function is serialised via `fn.toString()` and reconstructed inside the worker using `eval()`. This means:
+> - ❌ No closures — the function cannot reference variables from its outer scope
+> - ❌ No imported modules — `require()` calls inside the task will fail
+> - ✅ Self-contained functions with only their arguments work perfectly
+
+---
+
+### `pool.getStats()`
+
+Returns a snapshot of the pool's current state.
+
+```js
+console.log(pool.getStats());
+// { activeThreads: 2, queuedTasks: 1, maxThreads: 4 }
+```
+
+---
+
+## 🔬 How It Works
+
+### 1. Task Submission — `addTask()`
+Each call to `addTask()` creates a task object containing the function stringified via `fn.toString()`, the arguments, and the Promise's `resolve`/`reject` callbacks. The task is pushed onto the internal FIFO queue (`this.taskQueue`), then `_processQueue()` is called.
+
+### 2. Queue Processing — `_processQueue()`
+A `while` loop checks whether `activeThreads < maxThreads`. For every available slot, it shifts the next task from the queue and calls `_executeTask()`. Tasks beyond the concurrency limit remain in the queue until a worker finishes.
+
+### 3. Worker Execution — `_executeTask()`
+A brand-new `Worker` thread is spawned for every task by calling `new Worker(path.resolve(__dirname, 'worker.js'))`. The task payload `{ id, fn, args }` is sent to it via `worker.postMessage()`.
+
+- On success: `worker.on('message')` fires → `task.resolve(result)` → `worker.terminate()`
+- On error: `worker.on('error')` fires → `task.reject(error)` → `worker.terminate()`
+
+After each completion, `activeThreads` is decremented and `_processQueue()` is called again to pick up the next waiting task.
+
+### 4. Inside the Worker — `worker.js`
+The worker listens for a message, reconstructs the function string back into a callable using `eval(`(${task.fn})`)`, invokes it with `fn(...task.args)`, and sends the result back via `parentPort.postMessage()`. Any exception is caught and forwarded as an error payload.
+
+---
+
+## 📋 Example
+
+```js
+const pool = new ThreadPool(4);
+
+const tasks = [
+  pool.addTask((x, y) => {
+    let sum = 0;
+    for (let i = 0; i < 1_000_000; i++) sum += i;
+    return `Task 1 result: ${x + y}, sum: ${sum}`;
+  }, 5, 10),
+
+  pool.addTask((text) => `Processed: ${text.toUpperCase()}`, 'hello world'),
+
+  pool.addTask((num) => {
+    let fact = 1;
+    for (let i = 1; i <= num; i++) fact *= i;
+    return `Factorial of ${num} is ${fact}`;
+  }, 10),
+];
+
+const results = await Promise.all(tasks);
+console.log('All results:', results);
+// [
+//   'Task 1 result: 15, sum: 499999500000',
+//   'Processed: HELLO WORLD',
+//   'Factorial of 10 is 3628800'
+// ]
+
+console.log('Pool stats:', pool.getStats());
+// { activeThreads: 0, queuedTasks: 0, maxThreads: 4 }
+```
+
+---
+
+## ⚠️ Limitations
+
+| Limitation | Detail |
+|-----------|--------|
+| **No worker reuse** | A new `Worker` is spawned for every task and terminated after completion. For high-frequency task bursts this adds per-spawn overhead. |
+| **No closures** | Functions are serialised to strings. Outer-scope variables are not captured. |
+| **CPU-bound only** | `worker_threads` excels at parallel computation. For I/O-bound work, Node's async event loop is already more efficient. |
+| **eval() usage** | Task functions are reconstructed with `eval()` inside the worker. Avoid passing untrusted code. |
 
 ---
 
 ## 📄 License
 
-MIT — do whatever you want with it.
-
----
-
-*Built to learn. Inspired by the question: "What actually happens under the hood?"*
+MIT
