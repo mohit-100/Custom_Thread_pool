@@ -1,97 +1,108 @@
-// 1️⃣ What a “thread pool” means in JS
-
-// A thread pool =
-
-// Fixed number of workers
-
-// Task queue
-
-// Workers pick tasks → execute → return result
-
-// Reuse workers instead of creating new ones every time
-
-//  const os = require("os")
-//  const {worker,parentPort} = require("worker_threads");
- 
-
-// class Thread_pool {
-
-    
-//      Pool_Size;
-//       Task_Queue = [];
-
-//     constructor(Task){
-
-//         this.Pool_Size = os.cpus().length;
-//        this.Task_Queue = Task;
-//     }
-
-//       Execution_Task(){
-
-//         for(let i = 0 ; i < this.Task_Queue.length;i++){
-//               const Take_Task = this.Task_Queue.pop();
-//               if(i < this.Pool_Size){
-//                   parentPort.postMessage(Take_Task);
-//               }
-//         }
-//       }
-
-// }
-
-// const Task = new worker();
-
-// const Thread = new Thread_pool()
-
-// console.log(Task);
-
 const os = require("os");
-const { Worker } = require("worker_threads");
 const path = require("path");
+const { Worker } = require("worker_threads");
 
 class ThreadPool {
-    constructor() {
-        this.poolSize = os.cpus().length;
+    constructor(maxThreads = os.cpus().length) {
+        this.maxThreads = maxThreads;
         this.taskQueue = [];
-        this.workers = [];
-        this.idleWorkers = [];
+        this.activeThreads = 0;
+    }
 
-        for (let i = 0; i < this.poolSize; i++) {
-            // const worker = new Worker("./worker.js");
-            const worker = new Worker(path.resolve(__dirname, "worker.js"));
+    addTask(fn, ...args) {
+        return new Promise((resolve, reject) => {
+            const task = {
+                id: Date.now() + Math.random(),
+                fn: fn.toString(),
+                args,
+                resolve,
+                reject
+            };
 
-            worker.on("message", (result) => {
-                console.log("Result:", result);
+            this.taskQueue.push(task);
+            this._processQueue();
+        });
+    }
 
-                // Mark worker as idle again
-                this.idleWorkers.push(worker);
-                this.runNext();
-            });
-
-            this.workers.push(worker);
-            this.idleWorkers.push(worker);
+    _processQueue() {
+        while (this.activeThreads < this.maxThreads && this.taskQueue.length > 0) {
+            const task = this.taskQueue.shift();
+            this._executeTask(task);
         }
     }
 
-    addTask(task) {
-        this.taskQueue.push(task);
-        this.runNext();
+    _executeTask(task) {
+        this.activeThreads++;
+
+        const worker = new Worker(path.resolve(__dirname, "worker.js"));
+
+        worker.on("message", (result) => {
+            this.activeThreads--;
+
+            if (result.error) {
+                task.reject(new Error(result.error));
+            } else {
+                task.resolve(result.result);
+            }
+
+            worker.terminate();
+            this._processQueue();
+        });
+
+        worker.on("error", (error) => {
+            this.activeThreads--;
+            task.reject(error);
+
+            worker.terminate();
+            this._processQueue();
+        });
+
+        worker.postMessage({
+            id: task.id,
+            fn: task.fn,
+            args: task.args
+        });
     }
 
-    runNext() {
-        if(this.taskQueue.length === 0) return;
-        if(this.idleWorkers.length === 0) return;
-
-        const task = this.taskQueue.shift();
-        console.log(task)
-        const worker = this.idleWorkers.pop();
-        console.log(worker)
-
-        worker.postMessage(task);
+    getStats() {
+        return {
+            activeThreads: this.activeThreads,
+            queuedTasks: this.taskQueue.length,
+            maxThreads: this.maxThreads
+        };
     }
 }
 
-const pool = new ThreadPool();
+// Example usage
+async function example() {
+    const pool = new ThreadPool(4);
 
-[1,2,3,4,5,6,7,8].forEach(task => {
-    pool.addTask(task);
-});
+    const tasks = [
+        pool.addTask((x, y) => {
+            let sum = 0;
+            for (let i = 0; i < 1000000; i++) {
+                sum += i;
+            }
+            return `Task 1 result: ${x + y}, sum: ${sum}`;
+        }, 5, 10),
+
+        pool.addTask((text) => {
+            return `Processed: ${text.toUpperCase()}`;
+        }, "hello world"),
+
+        pool.addTask((num) => {
+            let fact = 1;
+            for (let i = 1; i <= num; i++) {
+                fact *= i;
+            }
+            return `Factorial of ${num} is ${fact}`;
+        }, 10)
+    ];
+
+    const results = await Promise.all(tasks);
+
+    console.log("All results:", results);
+    console.log("Pool stats:", pool.getStats());
+}
+
+example().catch(console.error);
