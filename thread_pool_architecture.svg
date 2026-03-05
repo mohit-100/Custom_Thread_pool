@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="'Segoe UI', Arial, sans-serif">
+
+  <!-- Background -->
+  <rect width="900" height="560" fill="#0d1117" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" fill="#e6edf3" font-size="18" font-weight="bold">🧵 Thread Pool — System Architecture</text>
+
+  <!-- ───── MAIN THREAD BOX ───── -->
+  <rect x="30" y="65" width="180" height="110" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="120" y="88" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="bold">MAIN THREAD</text>
+  <text x="120" y="108" text-anchor="middle" fill="#8b949e" font-size="10">(Event Loop)</text>
+  <rect x="50" y="118" width="140" height="28" rx="6" fill="#1f2937" stroke="#374151"/>
+  <text x="120" y="137" text-anchor="middle" fill="#d2a8ff" font-size="11">pool.addTask(fn, args)</text>
+  <text x="120" y="162" text-anchor="middle" fill="#8b949e" font-size="10">stays responsive ✓</text>
+
+  <!-- ───── TASK QUEUE BOX ───── -->
+  <rect x="265" y="55" width="175" height="420" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="352" y="80" text-anchor="middle" fill="#f0883e" font-size="12" font-weight="bold">TASK QUEUE</text>
+  <text x="352" y="97" text-anchor="middle" fill="#8b949e" font-size="9">FIFO — waits for free worker</text>
+
+  <!-- Queue items -->
+  <rect x="283" y="108" width="139" height="34" rx="6" fill="#1c2333" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="352" y="122" text-anchor="middle" fill="#f0883e" font-size="10" font-weight="bold">Task #1</text>
+  <text x="352" y="136" text-anchor="middle" fill="#8b949e" font-size="9">fn.toString() + args</text>
+
+  <rect x="283" y="150" width="139" height="34" rx="6" fill="#1c2333" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="352" y="164" text-anchor="middle" fill="#f0883e" font-size="10" font-weight="bold">Task #2</text>
+  <text x="352" y="178" text-anchor="middle" fill="#8b949e" font-size="9">fn.toString() + args</text>
+
+  <rect x="283" y="192" width="139" height="34" rx="6" fill="#1c2333" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="352" y="206" text-anchor="middle" fill="#f0883e" font-size="10" font-weight="bold">Task #3</text>
+  <text x="352" y="220" text-anchor="middle" fill="#8b949e" font-size="9">fn.toString() + args</text>
+
+  <!-- Dots -->
+  <circle cx="352" cy="248" r="3" fill="#484f58"/>
+  <circle cx="352" cy="260" r="3" fill="#484f58"/>
+  <circle cx="352" cy="272" r="3" fill="#484f58"/>
+
+  <!-- _processQueue label -->
+  <rect x="283" y="290" width="139" height="28" rx="6" fill="#0d419d" stroke="#388bfd" stroke-width="1"/>
+  <text x="352" y="309" text-anchor="middle" fill="#79c0ff" font-size="10">_processQueue()</text>
+
+  <!-- Queue stats -->
+  <text x="352" y="345" text-anchor="middle" fill="#8b949e" font-size="9">activeThreads &lt; maxThreads?</text>
+  <text x="352" y="360" text-anchor="middle" fill="#3fb950" font-size="9">→ dispatch to worker</text>
+  <text x="352" y="375" text-anchor="middle" fill="#f85149" font-size="9">→ wait in queue</text>
+
+  <!-- getStats box -->
+  <rect x="283" y="395" width="139" height="60" rx="6" fill="#1c2333" stroke="#30363d"/>
+  <text x="352" y="412" text-anchor="middle" fill="#8b949e" font-size="9">getStats()</text>
+  <text x="352" y="428" text-anchor="middle" fill="#d2a8ff" font-size="9">activeThreads: N</text>
+  <text x="352" y="442" text-anchor="middle" fill="#d2a8ff" font-size="9">queuedTasks: N</text>
+  <text x="352" y="456" text-anchor="middle" fill="#d2a8ff" font-size="9">maxThreads: N</text>
+
+  <!-- ───── WORKER POOL BOX ───── -->
+  <rect x="500" y="55" width="175" height="290" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="587" y="80" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="bold">WORKER POOL</text>
+  <text x="587" y="97" text-anchor="middle" fill="#8b949e" font-size="9">os.cpus().length (default)</text>
+
+  <!-- Workers -->
+  <rect x="518" y="108" width="139" height="44" rx="6" fill="#0f2a1a" stroke="#3fb950" stroke-width="1.2"/>
+  <text x="587" y="127" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="bold">Worker 1</text>
+  <text x="587" y="143" text-anchor="middle" fill="#8b949e" font-size="9">● executing task…</text>
+
+  <rect x="518" y="160" width="139" height="44" rx="6" fill="#0f2a1a" stroke="#3fb950" stroke-width="1.2"/>
+  <text x="587" y="179" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="bold">Worker 2</text>
+  <text x="587" y="195" text-anchor="middle" fill="#8b949e" font-size="9">● executing task…</text>
+
+  <rect x="518" y="212" width="139" height="44" rx="6" fill="#1c2333" stroke="#484f58" stroke-width="1.2"/>
+  <text x="587" y="231" text-anchor="middle" fill="#8b949e" font-size="11" font-weight="bold">Worker 3</text>
+  <text x="587" y="247" text-anchor="middle" fill="#484f58" font-size="9">○ idle</text>
+
+  <rect x="518" y="264" width="139" height="44" rx="6" fill="#1c2333" stroke="#484f58" stroke-width="1.2"/>
+  <text x="587" y="283" text-anchor="middle" fill="#8b949e" font-size="11" font-weight="bold">Worker 4</text>
+  <text x="587" y="299" text-anchor="middle" fill="#484f58" font-size="9">○ idle</text>
+
+  <!-- ───── RESULTS BOX ───── -->
+  <rect x="500" y="375" width="175" height="100" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="587" y="398" text-anchor="middle" fill="#79c0ff" font-size="12" font-weight="bold">RESULTS</text>
+  <rect x="518" y="408" width="139" height="24" rx="5" fill="#0d2d4a" stroke="#388bfd" stroke-width="1"/>
+  <text x="587" y="424" text-anchor="middle" fill="#79c0ff" font-size="10">Promise.resolve(result)</text>
+  <rect x="518" y="438" width="139" height="24" rx="5" fill="#2d0f0f" stroke="#f85149" stroke-width="1"/>
+  <text x="587" y="454" text-anchor="middle" fill="#f85149" font-size="10">Promise.reject(error)</text>
+
+  <!-- ───── SERIALIZATION NOTE ───── -->
+  <rect x="695" y="120" width="178" height="90" rx="10" fill="#1a1409" stroke="#e3b341" stroke-width="1.5"/>
+  <text x="784" y="141" text-anchor="middle" fill="#e3b341" font-size="11" font-weight="bold">⚠️ Serialization</text>
+  <text x="784" y="160" text-anchor="middle" fill="#8b949e" font-size="9">fn → fn.toString()</text>
+  <text x="784" y="175" text-anchor="middle" fill="#8b949e" font-size="9">args → postMessage()</text>
+  <text x="784" y="190" text-anchor="middle" fill="#f85149" font-size="9">No closures allowed!</text>
+
+  <!-- ───── CPU NOTE ───── -->
+  <rect x="695" y="240" width="178" height="70" rx="10" fill="#0f1a2e" stroke="#388bfd" stroke-width="1.5"/>
+  <text x="784" y="261" text-anchor="middle" fill="#79c0ff" font-size="11" font-weight="bold">💻 CPU Bound</text>
+  <text x="784" y="280" text-anchor="middle" fill="#8b949e" font-size="9">Best for heavy compute</text>
+  <text x="784" y="295" text-anchor="middle" fill="#8b949e" font-size="9">Not for I/O / network</text>
+
+  <!-- ───── ARROWS ───── -->
+
+  <!-- Main thread → Task Queue -->
+  <line x1="210" y1="120" x2="263" y2="130" stroke="#f0883e" stroke-width="1.8" marker-end="url(#arrow-orange)"/>
+  <text x="236" y="114" text-anchor="middle" fill="#f0883e" font-size="9">push</text>
+
+  <!-- Task Queue → Worker Pool -->
+  <line x1="440" y1="190" x2="498" y2="190" stroke="#3fb950" stroke-width="1.8" marker-end="url(#arrow-green)"/>
+  <text x="469" y="183" text-anchor="middle" fill="#3fb950" font-size="9">dispatch</text>
+
+  <!-- Worker Pool → Results -->
+  <line x1="587" y1="345" x2="587" y2="373" stroke="#79c0ff" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+  <text x="617" y="365" text-anchor="middle" fill="#79c0ff" font-size="9">done</text>
+
+  <!-- Results → Main Thread (curved) -->
+  <path d="M500,430 Q350,510 210,150" fill="none" stroke="#79c0ff" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-blue)"/>
+  <text x="325" y="520" text-anchor="middle" fill="#79c0ff" font-size="9">resolve / reject Promise</text>
+
+  <!-- Worker → Serialization note -->
+  <line x1="657" y1="165" x2="693" y2="165" stroke="#e3b341" stroke-width="1.2" stroke-dasharray="4,3"/>
+
+  <!-- ───── ARROWHEAD MARKERS ───── -->
+  <defs>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f0883e"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3fb950"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#79c0ff"/>
+    </marker>
+  </defs>
+
+  <!-- ───── LEGEND ───── -->
+  <rect x="30" y="490" width="840" height="55" rx="8" fill="#161b22" stroke="#30363d"/>
+  <text x="50" y="510" fill="#8b949e" font-size="10" font-weight="bold">LEGEND</text>
+  <rect x="105" y="499" width="12" height="12" rx="2" fill="#0f2a1a" stroke="#3fb950" stroke-width="1.2"/>
+  <text x="122" y="510" fill="#8b949e" font-size="9">Active Worker</text>
+  <rect x="210" y="499" width="12" height="12" rx="2" fill="#1c2333" stroke="#484f58" stroke-width="1.2"/>
+  <text x="227" y="510" fill="#8b949e" font-size="9">Idle Worker</text>
+  <line x1="305" y1="505" x2="330" y2="505" stroke="#f0883e" stroke-width="2"/>
+  <text x="335" y="510" fill="#8b949e" font-size="9">Task flow</text>
+  <line x1="395" y1="505" x2="420" y2="505" stroke="#79c0ff" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="425" y="510" fill="#8b949e" font-size="9">Promise callback</text>
+  <line x1="515" y1="505" x2="540" y2="505" stroke="#e3b341" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="545" y="510" fill="#8b949e" font-size="9">Serialization warning</text>
+
+  <!-- second line legend -->
+  <text x="50" y="534" fill="#8b949e" font-size="9">Node.js worker_threads — no external deps — CPU-bound tasks only</text>
+  <text x="700" y="534" fill="#484f58" font-size="9">github.com/mohit-100/Custom_Thread_pool</text>
+</svg>
